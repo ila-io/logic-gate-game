@@ -21,28 +21,48 @@ export default function Canvas({ gates, setGates, wiring, setWiring, connections
     },
   }));
 
+  // Calculate node absolute positions for connections
+  // Helper function:
+  const getNodePosition = (gate, node) => {
+    const left = gate.x - 64;
+    const top = gate.y - 64;
+    switch (node) {
+      case "output":
+        return { x: left + 128, y: top + 55 };
+      case "input1":
+        return { x: left, y: top + (gate.type === "NOT" ? 55 : 37) };
+      case "input2":
+        return { x: left, y: top + 75 };
+      default:
+        return { x: gate.x, y: gate.y };
+    }
+  };
+
   return (
-    <div id="canvas-area" ref={dropRef} className="flex-1 relative bg-gray-900 overflow-hidden">
+    <div
+      id="canvas-area"
+      ref={dropRef}
+      className="flex-1 relative bg-gray-900 overflow-hidden"
+    >
       <svg className="absolute w-full h-full pointer-events-none z-0">
         {connections.map((conn, idx) => {
           const fromGate = gates[conn.from.index];
           const toGate = gates[conn.to.index];
           if (!fromGate || !toGate) return null;
 
-          const fromX = fromGate.x + 64; // Center of image + offset
-          const fromY = fromGate.y;
-          const toX = toGate.x;
-          const toY = toGate.y;
+          const fromPos = getNodePosition(fromGate, conn.from.node);
+          const toPos = getNodePosition(toGate, conn.to.node);
 
           return (
             <line
               key={idx}
-              x1={fromX}
-              y1={fromY}
-              x2={toX}
-              y2={toY}
+              x1={fromPos.x}
+              y1={fromPos.y}
+              x2={toPos.x}
+              y2={toPos.y}
               stroke="white"
-              strokeWidth="3"
+              strokeWidth="4" // thicker line
+              strokeLinecap="round"
             />
           );
         })}
@@ -54,7 +74,8 @@ export default function Canvas({ gates, setGates, wiring, setWiring, connections
             x2={wiring.mouseX}
             y2={wiring.mouseY}
             stroke="white"
-            strokeWidth="3"
+            strokeWidth="4"
+            strokeLinecap="round"
           />
         )}
       </svg>
@@ -72,6 +93,7 @@ export default function Canvas({ gates, setGates, wiring, setWiring, connections
         />
       ))}
 
+      {/* Trash Can in bottom right */}
       <div className="absolute bottom-4 right-4 z-10">
         <TrashCan
           onDropGate={(index) =>
