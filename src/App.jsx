@@ -9,7 +9,6 @@ export default function App() {
         {/* Left column: Inputs */}
         <div className="w-32 bg-gray-800 border-r border-gray-700 p-2">
           <h2 className="text-sm font-bold mb-2">Inputs</h2>
-          {/* You can add toggles or wires later */}
         </div>
 
         {/* Center: Freeform Canvas */}

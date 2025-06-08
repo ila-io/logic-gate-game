@@ -35,10 +35,10 @@ export default function Canvas(){
                     key = {idx}
                     src = {`/assets/${gate.type.toLowerCase()}-gate.png`}
                     alt = {gate.type}
-                    className = "w-16 h-16 absolute"
+                    className = "w-32 h-32 absolute"
                     style = {{
-                        left: gate.x - 32,
-                        top: gate.y - 32,
+                        left: gate.x - 64,
+                        top: gate.y - 64,
                     }}
                 />
             ))}
