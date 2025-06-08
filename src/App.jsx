@@ -4,8 +4,8 @@ import GatePalette from "./components/GatePalette";
 
 export default function App() {
   const [gates, setGates] = useState([]);
-  // const [wiring, setWiring] = useState(null); // { fromGateIndex, fromNodeType }
-  // const [connections, setConnections] = useState([]); // Array of { from, to }
+  const [wiring, setWiring] = useState(null);
+  const [connections, setConnections] = useState([]);
 
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-white">
@@ -14,7 +14,14 @@ export default function App() {
           <h2 className="text-sm font-bold mb-2">Inputs</h2>
         </div>
 
-        <Canvas gates={gates} setGates={setGates} />
+        <Canvas
+          gates={gates}
+          setGates={setGates}
+          wiring={wiring}
+          setWiring={setWiring}
+          connections={connections}
+          setConnections={setConnections}
+        />
 
         <div className="w-32 bg-gray-800 border-l border-gray-700 p-2">
           <h2 className="text-sm font-bold mb-2">Output</h2>
