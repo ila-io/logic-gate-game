@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { X, Plus } from "lucide-react";
-import { evaluateCircuit } from "../utils/LogicEvaluator";
+import { evaluateCircuit } from "./utils/LogicEvaluator";
 
 export default function OutputSection({ 
   outputs, 

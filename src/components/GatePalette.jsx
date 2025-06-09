@@ -1,8 +1,22 @@
 import { useDrag } from "react-dnd";
+import andGate from "../assets/and-gate.png";
+import orGate from "../assets/or-gate.png";
+import xorGate from "../assets/xor-gate.png";
+import notGate from "../assets/not-gate.png";
+import nandGate from "../assets/nand-gate.png";
+import norGate from "../assets/nor-gate.png";
 
-// These are the gate types you support
-const gates = ["AND", "OR", "XOR", "NOT", "NAND", "NOR"];
+// Map gate names to images
+const gateImages = {
+  AND: andGate,
+  OR: orGate,
+  XOR: xorGate,
+  NOT: notGate,
+  NAND: nandGate,
+  NOR: norGate,
+};
 
+const gates = Object.keys(gateImages);
 
 function DraggableGate({ gate }) {
   const [{ isDragging }, dragRef] = useDrag(() => ({
@@ -13,8 +27,6 @@ function DraggableGate({ gate }) {
     }),
   }));
 
-  const imagePath = `/assets/${gate.toLowerCase()}-gate.png`;
-  
   return (
     <div
       ref={dragRef}
@@ -23,7 +35,7 @@ function DraggableGate({ gate }) {
       }`}
     >
       <img
-        src={imagePath}
+        src={gateImages[gate]}
         alt={`${gate} gate`}
         className="w-10 h-10 object-contain mb-1"
       />

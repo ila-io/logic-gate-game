@@ -1,7 +1,8 @@
 import DraggableGateOnCanvas from "./DraggableGateOnCanvas";
 import TrashCan from "./TrashCan";
 import { useDrop } from "react-dnd";
-import { evaluateCircuit } from "../utils/LogicEvaluator";
+import { evaluateCircuit } from "./utils/LogicEvaluator";
+
 
 export default function Canvas({ 
   gates, 

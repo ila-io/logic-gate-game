@@ -1,6 +1,23 @@
 import { useRef, useEffect, useState } from "react";
 import { useDrag } from "react-dnd";
 
+// Gate images (imported statically for Vite compatibility)
+import andGate from "../assets/and-gate.png";
+import orGate from "../assets/or-gate.png";
+import xorGate from "../assets/xor-gate.png";
+import notGate from "../assets/not-gate.png";
+import nandGate from "../assets/nand-gate.png";
+import norGate from "../assets/nor-gate.png";
+
+const gateImages = {
+  AND: andGate,
+  OR: orGate,
+  XOR: xorGate,
+  NOT: notGate,
+  NAND: nandGate,
+  NOR: norGate,
+};
+
 export default function DraggableGateOnCanvas({
   gate,
   index,
@@ -19,7 +36,7 @@ export default function DraggableGateOnCanvas({
   const [hoveredNode, setHoveredNode] = useState(null);
   const gateDragBlockedRef = useRef(false);
 
-  /* ───────────────────────── 1. Gate-drag (native) with boundaries ───────────────────────── */
+  // Drag logic
   useEffect(() => {
     const handleMouseDown = (e) => {
       if (
@@ -33,7 +50,6 @@ export default function DraggableGateOnCanvas({
       const startY = e.clientY;
       const startGate = { ...gate };
 
-      // Get canvas boundaries
       const canvas = document.getElementById("canvas-area");
       if (!canvas) return;
 
@@ -41,38 +57,21 @@ export default function DraggableGateOnCanvas({
         const dx = ev.clientX - startX;
         const dy = ev.clientY - startY;
 
-        // Calculate new position
         let newX = startGate.x + dx;
         let newY = startGate.y + dy;
 
-        // Get canvas dimensions
         const canvasRect = canvas.getBoundingClientRect();
         const canvasWidth = canvasRect.width;
         const canvasHeight = canvasRect.height;
 
-        // Gate dimensions (each gate is 128x128 pixels, positioned from center)
         const gateHalfWidth = 64;
         const gateHalfHeight = 64;
 
-        // Apply boundary constraints
-        // Left boundary
-        if (newX - gateHalfWidth < 0) {
-          newX = gateHalfWidth;
-        }
-        // Right boundary
-        if (newX + gateHalfWidth > canvasWidth) {
-          newX = canvasWidth - gateHalfWidth;
-        }
-        // Top boundary
-        if (newY - gateHalfHeight < 0) {
-          newY = gateHalfHeight;
-        }
-        // Bottom boundary
-        if (newY + gateHalfHeight > canvasHeight) {
-          newY = canvasHeight - gateHalfHeight;
-        }
+        if (newX - gateHalfWidth < 0) newX = gateHalfWidth;
+        if (newX + gateHalfWidth > canvasWidth) newX = canvasWidth - gateHalfWidth;
+        if (newY - gateHalfHeight < 0) newY = gateHalfHeight;
+        if (newY + gateHalfHeight > canvasHeight) newY = canvasHeight - gateHalfHeight;
 
-        // Update gate position with bounded coordinates
         setGates((prev) =>
           prev.map((g, i) =>
             i === index ? { ...g, x: newX, y: newY } : g
@@ -94,15 +93,14 @@ export default function DraggableGateOnCanvas({
     return () => el?.removeEventListener("mousedown", handleMouseDown);
   }, [gate, index, setGates]);
 
-  /* ───────────────────────── 2. Double-click to delete ───────────────────────── */
   useEffect(() => {
     const handleDoubleClick = (e) => {
       if (e.target.closest(".wire-node")) return;
-      
+
       setGates((prev) => prev.filter((_, i) => i !== index));
-      
-      setConnections((prev) => 
-        prev.filter((conn) => 
+
+      setConnections((prev) =>
+        prev.filter((conn) =>
           conn.from.index !== index && conn.to.index !== index
         ).map((conn) => ({
           from: {
@@ -122,14 +120,12 @@ export default function DraggableGateOnCanvas({
     return () => el?.removeEventListener("dblclick", handleDoubleClick);
   }, [index, setGates, setConnections]);
 
-  /* ───────────────────── 3. React-DnD (attach only to image) ─────────────── */
   useDrag(
     () => ({ type: "PLACED_GATE", item: { index } }),
     [],
     (drag) => drag(imgRef)
   );
 
-  /* ─────────────────────── 4. Wiring helpers ─────────────────────────────── */
   const beginWire = (e, node) => {
     e.stopPropagation();
     gateDragBlockedRef.current = true;
@@ -160,7 +156,6 @@ export default function DraggableGateOnCanvas({
     window.addEventListener("mouseup", up);
   };
 
-  // Helper function to handle input connections
   const handleInputConnection = (e, inputNode) => {
     e.stopPropagation();
     if (!wiring) return;
@@ -182,34 +177,32 @@ export default function DraggableGateOnCanvas({
     setWiring(null);
   };
 
-  // Handle double-click on input nodes to delete connections
   const handleInputNodeDoubleClick = (e, inputNode) => {
     e.stopPropagation();
-    setConnections(prev => 
-      prev.filter(conn => 
+    setConnections(prev =>
+      prev.filter(conn =>
         !(conn.to.index === index && conn.to.node === inputNode)
       )
     );
   };
 
-  // Handle double-click on output node to delete connections
   const handleOutputNodeDoubleClick = (e) => {
     e.stopPropagation();
-    setConnections(prev => 
-      prev.filter(conn => 
+    setConnections(prev =>
+      prev.filter(conn =>
         !(conn.from.type === 'gate' && conn.from.index === index && conn.from.node === 'output')
       )
     );
   };
 
   const getNodeClasses = (id, isOutput = false) => {
-    const baseClasses = "absolute w-6 h-6 rounded-full transition duration-150 cursor-crosshair flex items-center justify-center text-xs font-bold";
-    const colorClasses = hoveredNode === id ? "bg-white text-black" : "bg-gray-600 text-white border-2 border-gray-400";
-    const logicClasses = isOutput ? 
+    const base = "absolute w-6 h-6 rounded-full transition duration-150 cursor-crosshair flex items-center justify-center text-xs font-bold";
+    const color = hoveredNode === id ? "bg-white text-black" : "bg-gray-600 text-white border-2 border-gray-400";
+    const logic = isOutput ? 
       (outputValue === 1 ? "ring-2 ring-green-400" : "ring-2 ring-red-400") :
       "";
-    
-    return `${baseClasses} ${colorClasses} ${logicClasses}`;
+
+    return `${base} ${color} ${logic}`;
   };
 
   return (
@@ -218,16 +211,16 @@ export default function DraggableGateOnCanvas({
       className="absolute flex flex-col items-center select-none"
       style={{ left: gate.x - 64, top: gate.y - 64 }}
     >
-      {/* Gate icon */}
+      {/* Gate image */}
       <img
         ref={imgRef}
-        src={`/assets/${gate.type.toLowerCase()}-gate.png`}
+        src={gateImages[gate.type]}
         alt={gate.type}
         className="w-32 h-32 cursor-move"
       />
       <span className="text-xs mt-1 text-white">{gate.type}</span>
 
-      {/* ─────── Output Node ─────── */}
+      {/* Output Node */}
       <div
         className={`${getNodeClasses("output", true)} wire-node`}
         style={{ top: "43%", right: "-0.5rem", transform: "translateY(-50%)" }}
@@ -239,7 +232,7 @@ export default function DraggableGateOnCanvas({
         {outputValue}
       </div>
 
-      {/* ─────── Input Node(s) ─────── */}
+      {/* Input Nodes */}
       {gate.type === "NOT" ? (
         <div
           className={`${getNodeClasses("input1")} wire-node`}
