@@ -1,239 +1,278 @@
 import { useRef, useEffect, useState } from "react";
+import { useDrag } from "react-dnd";
 
-export default function DraggableGateOnCanvas({ gate, index, setGates, wiring, setWiring, connections, setConnections }) {
-  const ref = useRef();
+export default function DraggableGateOnCanvas({
+  gate,
+  index,
+  setGates,
+  wiring,
+  setWiring,
+  connections,
+  setConnections,
+  outputValue = 0,
+  input1Value = 0,
+  input2Value = 0,
+}) {
+  const containerRef = useRef(null);
+  const imgRef = useRef(null);
+
   const [hoveredNode, setHoveredNode] = useState(null);
-  const [draggingNode, setDraggingNode] = useState(null); // null or "output" or "input1"/"input2"
+  const gateDragBlockedRef = useRef(false);
 
-  // Gate dragging: disable if dragging a node (wire start)
+  /* ───────────────────────── 1. Gate-drag (native) with boundaries ───────────────────────── */
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-
     const handleMouseDown = (e) => {
-      if (e.button !== 0) return;
-      if (draggingNode) return; // disable gate drag when wiring
+      if (
+        gateDragBlockedRef.current ||
+        e.button !== 0 ||
+        e.target.closest(".wire-node")
+      ) return;
       e.preventDefault();
 
       const startX = e.clientX;
       const startY = e.clientY;
       const startGate = { ...gate };
 
-      const handleMouseMove = (moveEvent) => {
-        const deltaX = moveEvent.clientX - startX;
-        const deltaY = moveEvent.clientY - startY;
+      // Get canvas boundaries
+      const canvas = document.getElementById("canvas-area");
+      if (!canvas) return;
 
+      const handleMove = (ev) => {
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+
+        // Calculate new position
+        let newX = startGate.x + dx;
+        let newY = startGate.y + dy;
+
+        // Get canvas dimensions
+        const canvasRect = canvas.getBoundingClientRect();
+        const canvasWidth = canvasRect.width;
+        const canvasHeight = canvasRect.height;
+
+        // Gate dimensions (each gate is 128x128 pixels, positioned from center)
+        const gateHalfWidth = 64;
+        const gateHalfHeight = 64;
+
+        // Apply boundary constraints
+        // Left boundary
+        if (newX - gateHalfWidth < 0) {
+          newX = gateHalfWidth;
+        }
+        // Right boundary
+        if (newX + gateHalfWidth > canvasWidth) {
+          newX = canvasWidth - gateHalfWidth;
+        }
+        // Top boundary
+        if (newY - gateHalfHeight < 0) {
+          newY = gateHalfHeight;
+        }
+        // Bottom boundary
+        if (newY + gateHalfHeight > canvasHeight) {
+          newY = canvasHeight - gateHalfHeight;
+        }
+
+        // Update gate position with bounded coordinates
         setGates((prev) =>
           prev.map((g, i) =>
-            i === index
-              ? {
-                  ...g,
-                  x: startGate.x + deltaX,
-                  y: startGate.y + deltaY,
-                }
-              : g
+            i === index ? { ...g, x: newX, y: newY } : g
           )
         );
       };
 
-      const handleMouseUp = () => {
-        window.removeEventListener("mousemove", handleMouseMove);
-        window.removeEventListener("mouseup", handleMouseUp);
+      const handleUp = () => {
+        window.removeEventListener("mousemove", handleMove);
+        window.removeEventListener("mouseup", handleUp);
       };
 
-      window.addEventListener("mousemove", handleMouseMove);
-      window.addEventListener("mouseup", handleMouseUp);
+      window.addEventListener("mousemove", handleMove);
+      window.addEventListener("mouseup", handleUp);
     };
 
-    el.addEventListener("mousedown", handleMouseDown);
-    return () => el.removeEventListener("mousedown", handleMouseDown);
-  }, [gate, index, setGates, draggingNode]);
+    const el = containerRef.current;
+    el?.addEventListener("mousedown", handleMouseDown);
+    return () => el?.removeEventListener("mousedown", handleMouseDown);
+  }, [gate, index, setGates]);
 
-  const handleDoubleClick = () => {
-    setGates((prev) => prev.filter((_, i) => i !== index));
-    // Also remove any connections to/from this gate:
-    setConnections((prev) =>
-      prev.filter(
-        (conn) => conn.from.index !== index && conn.to.index !== index
+  /* ───────────────────────── 2. Double-click to delete ───────────────────────── */
+  useEffect(() => {
+    const handleDoubleClick = (e) => {
+      if (e.target.closest(".wire-node")) return;
+      
+      setGates((prev) => prev.filter((_, i) => i !== index));
+      
+      setConnections((prev) => 
+        prev.filter((conn) => 
+          conn.from.index !== index && conn.to.index !== index
+        ).map((conn) => ({
+          from: {
+            ...conn.from,
+            index: conn.from.index > index ? conn.from.index - 1 : conn.from.index
+          },
+          to: {
+            ...conn.to,
+            index: conn.to.index > index ? conn.to.index - 1 : conn.to.index
+          }
+        }))
+      );
+    };
+
+    const el = containerRef.current;
+    el?.addEventListener("dblclick", handleDoubleClick);
+    return () => el?.removeEventListener("dblclick", handleDoubleClick);
+  }, [index, setGates, setConnections]);
+
+  /* ───────────────────── 3. React-DnD (attach only to image) ─────────────── */
+  useDrag(
+    () => ({ type: "PLACED_GATE", item: { index } }),
+    [],
+    (drag) => drag(imgRef)
+  );
+
+  /* ─────────────────────── 4. Wiring helpers ─────────────────────────────── */
+  const beginWire = (e, node) => {
+    e.stopPropagation();
+    gateDragBlockedRef.current = true;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+
+    setWiring({
+      from: { type: 'gate', index, node },
+      startX: cx,
+      startY: cy,
+      mouseX: cx,
+      mouseY: cy,
+    });
+
+    const move = (mv) =>
+      setWiring((w) => (w ? { ...w, mouseX: mv.clientX, mouseY: mv.clientY } : null));
+
+    const up = () => {
+      setWiring(null);
+      gateDragBlockedRef.current = false;
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+    };
+
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+  };
+
+  // Helper function to handle input connections
+  const handleInputConnection = (e, inputNode) => {
+    e.stopPropagation();
+    if (!wiring) return;
+
+    const existing = connections.find(
+      (conn) =>
+        conn.to.index === index &&
+        conn.to.node === inputNode
+    );
+    if (existing) return;
+
+    setConnections((prev) => [
+      ...prev,
+      {
+        from: wiring.from,
+        to: { index, node: inputNode },
+      },
+    ]);
+    setWiring(null);
+  };
+
+  // Handle double-click on input nodes to delete connections
+  const handleInputNodeDoubleClick = (e, inputNode) => {
+    e.stopPropagation();
+    setConnections(prev => 
+      prev.filter(conn => 
+        !(conn.to.index === index && conn.to.node === inputNode)
       )
     );
   };
 
-  const handleNodeMouseEnter = (nodeId) => setHoveredNode(nodeId);
-  const handleNodeMouseLeave = () => setHoveredNode(null);
-
-  // Calculate absolute node positions for wiring
-  // Gate top-left corner:
-  const gateLeft = gate.x - 64;
-  const gateTop = gate.y - 64;
-
-  // Positions relative to gate div (w-32 h-32 means 128px x 128px)
-  // Using the positions you gave:
-  const outputNodePos = {
-    x: gateLeft + 128 - 3, // right edge minus half circle size (4/2=2px, use 3 for alignment)
-    y: gateTop + 55, // 43% of 128px = 55 px approx
-  };
-
-  const input1NodePos = {
-    x: gateLeft + 0 - 1, // left edge minus half circle size (4/2=2 px)
-    y: gateTop + (gate.type === "NOT" ? 55 : 37), // NOT: 43% (55px), else 29% (37 px)
-  };
-
-  const input2NodePos = {
-    x: gateLeft + 0 - 1, // same as input1 x
-    y: gateTop + 75, // 58% of 128 = 74.2 approx
-  };
-
-  // Start wiring drag from output node
-  const onOutputMouseDown = (e) => {
+  // Handle double-click on output node to delete connections
+  const handleOutputNodeDoubleClick = (e) => {
     e.stopPropagation();
-    setDraggingNode("output");
-    setWiring({
-      fromGateIndex: index,
-      fromNodeType: "output",
-      startX: outputNodePos.x + 2, // center of node circle
-      startY: outputNodePos.y + 2,
-      mouseX: outputNodePos.x + 2,
-      mouseY: outputNodePos.y + 2,
-    });
-  };
-
-  // Finish wiring drag on input node
-  const onInputMouseUp = (inputNodeId, e) => {
-    e.stopPropagation();
-    if (!wiring) return;
-
-    // Prevent multiple connections to the same input if max reached
-    // Count connections targeting this gate/input
-    const targetInputs = connections.filter(
-      (conn) =>
-        conn.to.index === index && conn.to.node === inputNodeId
+    setConnections(prev => 
+      prev.filter(conn => 
+        !(conn.from.type === 'gate' && conn.from.index === index && conn.from.node === 'output')
+      )
     );
-    const maxInputs = gate.type === "NOT" ? 1 : 2;
-    if (targetInputs.length >= maxInputs) {
-      // Do nothing, already max inputs connected
-      setDraggingNode(null);
-      setWiring(null);
-      return;
-    }
-
-    // Add connection from wiring.fromGateIndex/output to this gate/input
-    if (wiring.fromGateIndex !== index || wiring.fromNodeType !== inputNodeId) {
-      setConnections((prev) => [
-        ...prev,
-        {
-          from: { index: wiring.fromGateIndex, node: wiring.fromNodeType },
-          to: { index, node: inputNodeId },
-        },
-      ]);
-    }
-
-    setDraggingNode(null);
-    setWiring(null);
   };
 
-  // Update wiring mouse move globally
-  useEffect(() => {
-    if (!draggingNode) return;
-
-    const onMouseMove = (e) => {
-      setWiring((prev) =>
-        prev
-          ? {
-              ...prev,
-              mouseX: e.clientX,
-              mouseY: e.clientY,
-            }
-          : null
-      );
-    };
-
-    const onMouseUp = (e) => {
-      setDraggingNode(null);
-      setWiring(null);
-    };
-
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-    return () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-    };
-  }, [draggingNode, setWiring]);
+  const getNodeClasses = (id, isOutput = false) => {
+    const baseClasses = "absolute w-6 h-6 rounded-full transition duration-150 cursor-crosshair flex items-center justify-center text-xs font-bold";
+    const colorClasses = hoveredNode === id ? "bg-white text-black" : "bg-gray-600 text-white border-2 border-gray-400";
+    const logicClasses = isOutput ? 
+      (outputValue === 1 ? "ring-2 ring-green-400" : "ring-2 ring-red-400") :
+      "";
+    
+    return `${baseClasses} ${colorClasses} ${logicClasses}`;
+  };
 
   return (
     <div
-      ref={ref}
-      onDoubleClick={handleDoubleClick}
-      className="absolute flex flex-col items-center cursor-move select-none"
-      style={{
-        left: gate.x - 64,
-        top: gate.y - 64,
-      }}
+      ref={containerRef}
+      className="absolute flex flex-col items-center select-none"
+      style={{ left: gate.x - 64, top: gate.y - 64 }}
     >
+      {/* Gate icon */}
       <img
+        ref={imgRef}
         src={`/assets/${gate.type.toLowerCase()}-gate.png`}
         alt={gate.type}
-        className="w-32 h-32 pointer-events-none"
-        draggable={false}
+        className="w-32 h-32 cursor-move"
       />
       <span className="text-xs mt-1 text-white">{gate.type}</span>
 
-      {/* OUTPUT NODE (right side) */}
+      {/* ─────── Output Node ─────── */}
       <div
-        className={`absolute w-4 h-4 rounded-full ${
-          hoveredNode === "output" ? "bg-white" : "bg-gray-500"
-        } transition duration-150`}
-        style={{ top: "43%", right: "-0.20rem", transform: "translateY(-50%)" }}
-        onMouseEnter={() => handleNodeMouseEnter("output")}
-        onMouseLeave={handleNodeMouseLeave}
-        onMouseDown={onOutputMouseDown}
-      />
+        className={`${getNodeClasses("output", true)} wire-node`}
+        style={{ top: "43%", right: "-0.5rem", transform: "translateY(-50%)" }}
+        onMouseEnter={() => setHoveredNode("output")}
+        onMouseLeave={() => setHoveredNode(null)}
+        onMouseDown={(e) => beginWire(e, "output")}
+        onDoubleClick={handleOutputNodeDoubleClick}
+      >
+        {outputValue}
+      </div>
 
-      {/* INPUT NODE(s) */}
+      {/* ─────── Input Node(s) ─────── */}
       {gate.type === "NOT" ? (
         <div
-          className={`absolute w-4 h-4 rounded-full ${
-            hoveredNode === "input1" ? "bg-white" : "bg-gray-500"
-          } transition duration-150`}
-          style={{
-            top: "43%",
-            left: "-0.2rem",
-            transform: "translateY(-50%)",
-          }}
-          onMouseEnter={() => handleNodeMouseEnter("input1")}
-          onMouseLeave={handleNodeMouseLeave}
-          onMouseUp={(e) => onInputMouseUp("input1", e)}
-        />
+          className={`${getNodeClasses("input1")} wire-node`}
+          style={{ top: "43%", left: "-0.5rem", transform: "translateY(-50%)" }}
+          onMouseEnter={() => setHoveredNode("input1")}
+          onMouseLeave={() => setHoveredNode(null)}
+          onMouseUp={(e) => handleInputConnection(e, "input1")}
+          onDoubleClick={(e) => handleInputNodeDoubleClick(e, "input1")}
+        >
+          {input1Value}
+        </div>
       ) : (
         <>
           <div
-            className={`absolute w-4 h-4 rounded-full ${
-              hoveredNode === "input1" ? "bg-white" : "bg-gray-500"
-            } transition duration-150`}
-            style={{
-              top: "29%",
-              left: "-0.2rem",
-              transform: "translateY(-50%)",
-            }}
-            onMouseEnter={() => handleNodeMouseEnter("input1")}
-            onMouseLeave={handleNodeMouseLeave}
-            onMouseUp={(e) => onInputMouseUp("input1", e)}
-          />
-
+            className={`${getNodeClasses("input1")} wire-node`}
+            style={{ top: "29%", left: "-0.5rem", transform: "translateY(-50%)" }}
+            onMouseEnter={() => setHoveredNode("input1")}
+            onMouseLeave={() => setHoveredNode(null)}
+            onMouseUp={(e) => handleInputConnection(e, "input1")}
+            onDoubleClick={(e) => handleInputNodeDoubleClick(e, "input1")}
+          >
+            {input1Value}
+          </div>
           <div
-            className={`absolute w-4 h-4 rounded-full ${
-              hoveredNode === "input2" ? "bg-white" : "bg-gray-500"
-            } transition duration-150`}
-            style={{
-              top: "58%",
-              left: "-0.2rem",
-              transform: "translateY(-50%)",
-            }}
-            onMouseEnter={() => handleNodeMouseEnter("input2")}
-            onMouseLeave={handleNodeMouseLeave}
-            onMouseUp={(e) => onInputMouseUp("input2", e)}
-          />
+            className={`${getNodeClasses("input2")} wire-node`}
+            style={{ top: "58%", left: "-0.5rem", transform: "translateY(-50%)" }}
+            onMouseEnter={() => setHoveredNode("input2")}
+            onMouseLeave={() => setHoveredNode(null)}
+            onMouseUp={(e) => handleInputConnection(e, "input2")}
+            onDoubleClick={(e) => handleInputNodeDoubleClick(e, "input2")}
+          >
+            {input2Value}
+          </div>
         </>
       )}
     </div>

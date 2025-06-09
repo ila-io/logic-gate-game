@@ -1,38 +1,63 @@
 import { useState } from "react";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 import Canvas from "./components/Canvas";
 import GatePalette from "./components/GatePalette";
+import InputSection from "./components/InputSection";
+import OutputSection from "./components/OutputSection";
 
 export default function App() {
   const [gates, setGates] = useState([]);
-  const [wiring, setWiring] = useState(null); // { fromGateIndex, fromNodeType, startX, startY, mouseX, mouseY }
-  const [connections, setConnections] = useState([]); // Array of { from: { index, node }, to: { index, node } }
+  const [inputs, setInputs] = useState([]);
+  const [outputs, setOutputs] = useState([]);
+  const [wiring, setWiring] = useState(null);
+  const [connections, setConnections] = useState([]);
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900 text-white">
-      <div className="flex flex-1">
-        <div className="w-32 bg-gray-800 border-r border-gray-700 p-2">
-          <h2 className="text-sm font-bold mb-2">Inputs</h2>
-          {/* You can add input components here later */}
+    <DndProvider backend={HTML5Backend}>
+      <div className="min-h-screen bg-gray-900 flex flex-col select-none">
+        {/* Main content area */}
+        <div className="flex-1 flex">
+          {/* Left panel - Inputs */}
+          <InputSection 
+            inputs={inputs}
+            setInputs={setInputs}
+            wiring={wiring}
+            setWiring={setWiring}
+            connections={connections}
+            setConnections={setConnections}
+          />
+
+          {/* Center - Canvas */}
+          <Canvas
+            gates={gates}
+            setGates={setGates}
+            inputs={inputs}
+            outputs={outputs}
+            wiring={wiring}
+            setWiring={setWiring}
+            connections={connections}
+            setConnections={setConnections}
+          />
+
+          {/* Right panel - Outputs */}
+          <OutputSection 
+            outputs={outputs}
+            setOutputs={setOutputs}
+            wiring={wiring}
+            setWiring={setWiring}
+            connections={connections}
+            setConnections={setConnections}
+            gates={gates}
+            inputs={inputs}
+          />
         </div>
 
-        <Canvas
-          gates={gates}
-          setGates={setGates}
-          wiring={wiring}
-          setWiring={setWiring}
-          connections={connections}
-          setConnections={setConnections}
-        />
-
-        <div className="w-32 bg-gray-800 border-l border-gray-700 p-2">
-          <h2 className="text-sm font-bold mb-2">Output</h2>
-          {/* You can add output components here later */}
+        {/* Bottom - Gate Palette */}
+        <div className="bg-gray-800 p-4 border-t border-gray-700">
+          <GatePalette />
         </div>
       </div>
-
-      <div className="bg-gray-800 border-t border-gray-700 p-2 relative">
-        <GatePalette />
-      </div>
-    </div>
+    </DndProvider>
   );
 }
