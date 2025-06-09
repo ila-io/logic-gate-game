@@ -1,6 +1,9 @@
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 
-As of now, this is just a simple, clean way to simulate logic gates on the web.
-
-Drag logic gates in from your pallete, and double click the gates, wires, or nodes to delete them. 
-
-I'm hoping to add puzzles soon, so stay tuned for that!
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  base: "/logic-gate-game/",
+});
