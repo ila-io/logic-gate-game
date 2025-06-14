@@ -113,3 +113,5 @@ export function evaluateCircuit(gates, inputs, outputs, connections) {
     outputValues: Object.fromEntries(outputValues)
   };
 }
+
+

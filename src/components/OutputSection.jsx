@@ -17,7 +17,17 @@ export default function OutputSection({
   // Calculate output values using circuit evaluation
   const { outputValues } = evaluateCircuit(gates || [], inputs || [], outputs || [], connections || []);
   
-  // Update output values based on circuit evaluation
+  // Auto-reassign labels whenever outputs change
+  useEffect(() => {
+    setOutputs(prevOutputs => 
+      prevOutputs.map((output, index) => ({
+        ...output,
+        label: outputLabels[index]
+      }))
+    );
+  }, [outputs.length]); 
+
+
   useEffect(() => {
     setOutputs(prevOutputs => 
       prevOutputs.map(output => ({
@@ -31,7 +41,7 @@ export default function OutputSection({
     if (outputs.length < 8) {
       const newOutput = {
         id: Date.now(),
-        label: outputLabels[outputs.length],
+        label: outputLabels[outputs.length], // This will be corrected by useEffect
         value: 0
       };
       setOutputs([...outputs, newOutput]);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Plus } from "lucide-react";
 
 export default function InputSection({ 
@@ -11,11 +11,21 @@ export default function InputSection({
 }) {
   const inputLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
   
+  // Auto-reassign labels whenever inputs change
+  useEffect(() => {
+    setInputs(prevInputs => 
+      prevInputs.map((input, index) => ({
+        ...input,
+        label: inputLabels[index]
+      }))
+    );
+  }, [inputs.length]); // Only trigger when length changes to avoid infinite loops
+  
   const addInput = () => {
     if (inputs.length < 8) {
       const newInput = {
         id: Date.now(), // unique id
-        label: inputLabels[inputs.length],
+        label: inputLabels[inputs.length], // This will be corrected by useEffect
         value: 0
       };
       setInputs([...inputs, newInput]);
