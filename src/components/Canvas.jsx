@@ -62,11 +62,11 @@ export default function Canvas({
     const top = gate.y - 64;
     switch (node) {
       case "output":
-        return { x: left + 128, y: top + 55 };
+        return { x: left + 125, y: top + 55 };
       case "input1":
-        return { x: left, y: top + (gate.type === "NOT" ? 55 : 30) };
+        return { x: left + 3, y: top + (gate.type === "NOT" ? 55 : 30) };
       case "input2":
-        return { x: left, y: top + 75 };
+        return { x: left + 3, y: top + 75 };
       default:
         return { x: gate.x, y: gate.y };
     }
@@ -204,7 +204,7 @@ export default function Canvas({
         {/* Render temporary wiring line (white while dragging) */}
         {wiring && (
           <line
-            x1={wiring.startX - (wiring.from.type === 'input' ? 0 : 188)}
+            x1={wiring.startX - (wiring.from.type === 'input' ? 0 : 191)}
             y1={wiring.startY}
             x2={wiring.mouseX - (wiring.from.type === 'input' ? 192 : 192)}
             y2={wiring.mouseY}

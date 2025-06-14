@@ -57,9 +57,9 @@ export default function App() {
         <div className="bg-gray-800 p-4 border-t border-gray-700 relative">
           <GatePalette />
           <div className="absolute bottom-10 left-4 text-gray-300 text-sm">
-              <p>Drag gates into the canvas above to build a circut.<br />
+              <p>Drag gates into the canvas above to build a circuit.<br />
                  Double click on gates and wires or their nodes to delete them.<br />
-                 Click and drag from any node on the right of a gate or input to connect them up.
+                 Click and drag from any node to connect them - input nodes (left) or output nodes (right).
               </p>
           </div>
         </div>

@@ -156,9 +156,18 @@ export default function DraggableGateOnCanvas({
     window.addEventListener("mouseup", up);
   };
 
+  // Handle connection when dragging FROM an output node OR input section TO an input node
   const handleInputConnection = (e, inputNode) => {
     e.stopPropagation();
     if (!wiring) return;
+
+    // Allow connections from output nodes (gate-to-gate) OR from input section (input-to-gate)
+    if (wiring.from.node !== 'output' && wiring.from.type !== 'input') return;
+
+    if(wiring.from.type === 'gate' && wiring.from.index === index){
+      setWiring(null);
+      return;
+    }
 
     const existing = connections.find(
       (conn) =>
@@ -172,6 +181,42 @@ export default function DraggableGateOnCanvas({
       {
         from: wiring.from,
         to: { index, node: inputNode },
+      },
+    ]);
+    setWiring(null);
+  };
+
+  // Handle connection when dragging FROM an input node TO an output node (new behavior)
+  const handleOutputConnection = (e) => {
+    e.stopPropagation();
+    if (!wiring) return;
+
+    // Only allow connections from gate input nodes to gate output nodes
+    // Don't allow connections from input section to output nodes
+    if (wiring.from.node === 'output' || wiring.from.type === 'input') return;
+
+    if(wiring.from.type === 'gate' && wiring.from.index === index){
+      setWiring(null);
+      return;
+    }
+
+    // Check if this output already has a connection from the same source
+    const existing = connections.find(
+      (conn) =>
+        conn.from.type === 'gate' &&
+        conn.from.index === wiring.from.index &&
+        conn.from.node === wiring.from.node &&
+        conn.to.index === index &&
+        conn.to.node === 'output'
+    );
+    if (existing) return;
+
+    // Create the connection in reverse (from the dragged input to this output)
+    setConnections((prev) => [
+      ...prev,
+      {
+        from: { type: 'gate', index, node: 'output' },
+        to: { index: wiring.from.index, node: wiring.from.node },
       },
     ]);
     setWiring(null);
@@ -227,6 +272,7 @@ export default function DraggableGateOnCanvas({
         onMouseEnter={() => setHoveredNode("output")}
         onMouseLeave={() => setHoveredNode(null)}
         onMouseDown={(e) => beginWire(e, "output")}
+        onMouseUp={handleOutputConnection}
         onDoubleClick={handleOutputNodeDoubleClick}
       >
         {outputValue}
@@ -239,6 +285,7 @@ export default function DraggableGateOnCanvas({
           style={{ top: "43%", left: "-0.5rem", transform: "translateY(-50%)" }}
           onMouseEnter={() => setHoveredNode("input1")}
           onMouseLeave={() => setHoveredNode(null)}
+          onMouseDown={(e) => beginWire(e, "input1")}
           onMouseUp={(e) => handleInputConnection(e, "input1")}
           onDoubleClick={(e) => handleInputNodeDoubleClick(e, "input1")}
         >
@@ -251,6 +298,7 @@ export default function DraggableGateOnCanvas({
             style={{ top: "29%", left: "-0.5rem", transform: "translateY(-50%)" }}
             onMouseEnter={() => setHoveredNode("input1")}
             onMouseLeave={() => setHoveredNode(null)}
+            onMouseDown={(e) => beginWire(e, "input1")}
             onMouseUp={(e) => handleInputConnection(e, "input1")}
             onDoubleClick={(e) => handleInputNodeDoubleClick(e, "input1")}
           >
@@ -261,6 +309,7 @@ export default function DraggableGateOnCanvas({
             style={{ top: "58%", left: "-0.5rem", transform: "translateY(-50%)" }}
             onMouseEnter={() => setHoveredNode("input2")}
             onMouseLeave={() => setHoveredNode(null)}
+            onMouseDown={(e) => beginWire(e, "input2")}
             onMouseUp={(e) => handleInputConnection(e, "input2")}
             onDoubleClick={(e) => handleInputNodeDoubleClick(e, "input2")}
           >
