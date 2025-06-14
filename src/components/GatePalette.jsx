@@ -5,6 +5,7 @@ import xorGate from "../assets/xor-gate.png";
 import notGate from "../assets/not-gate.png";
 import nandGate from "../assets/nand-gate.png";
 import norGate from "../assets/nor-gate.png";
+import puzzlePiece from "../assets/puzzle-piece.svg";
 
 // Map gate names to images
 const gateImages = {
@@ -44,12 +45,20 @@ function DraggableGate({ gate }) {
   );
 }
 
-export default function GatePalette() {
+export default function GatePalette({ togglePuzzleEditor }) {
   return (
-    <div className="flex justify-center gap-4 overflow-x-auto">
+    <div className="relative flex justify-center gap-4 overflow-x-auto">
       {gates.map((gate) => (
         <DraggableGate key={gate} gate={gate} />
       ))}
+
+      {/* Puzzle Editor Toggle Button */}
+      <button
+        className="absolute right-4 bottom-26 translate-y-full mt-2 bg-gray-700 hover:bg-gray-600 text-white text-sm pt-3 pb-4 pl-4 pr-3 rounded shadow flex items-center justify-right"
+        onClick={togglePuzzleEditor}
+      >
+        <img src={puzzlePiece} alt="Puzzle Builder" className="w-18 h-18" />
+      </button>
     </div>
   );
 }

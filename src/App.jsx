@@ -5,6 +5,7 @@ import Canvas from "./components/Canvas";
 import GatePalette from "./components/GatePalette";
 import InputSection from "./components/InputSection";
 import OutputSection from "./components/OutputSection";
+import PuzzleEditor from "./components/PuzzleEditor"; // ✅ Import the editor
 
 export default function App() {
   const [gates, setGates] = useState([]);
@@ -12,13 +13,13 @@ export default function App() {
   const [outputs, setOutputs] = useState([]);
   const [wiring, setWiring] = useState(null);
   const [connections, setConnections] = useState([]);
+  const [showPuzzleEditor, setShowPuzzleEditor] = useState(false); // ✅ Add this
 
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="min-h-screen bg-gray-900 flex flex-col select-none">
         {/* Main content area */}
         <div className="flex-1 flex">
-          {/* Left panel - Inputs */}
           <InputSection 
             inputs={inputs}
             setInputs={setInputs}
@@ -28,7 +29,6 @@ export default function App() {
             setConnections={setConnections}
           />
 
-          {/* Center - Canvas */}
           <Canvas
             gates={gates}
             setGates={setGates}
@@ -40,7 +40,6 @@ export default function App() {
             setConnections={setConnections}
           />
 
-          {/* Right panel - Outputs */}
           <OutputSection 
             outputs={outputs}
             setOutputs={setOutputs}
@@ -53,16 +52,22 @@ export default function App() {
           />
         </div>
 
-        {/* Bottom - Gate Palette */}
+        {/* Bottom - Gate Palette + Instructions */}
         <div className="bg-gray-800 p-4 border-t border-gray-700 relative">
-          <GatePalette />
+          <GatePalette togglePuzzleEditor={() => setShowPuzzleEditor(prev => !prev)} />
           <div className="absolute bottom-10 left-4 text-gray-300 text-sm">
-              <p>Drag gates into the canvas above to build a circuit.<br />
-                 Double click on gates and wires or their nodes to delete them.<br />
-                 Click and drag from any node to connect them - input nodes (left) or output nodes (right).
-              </p>
+            <p>
+              Drag gates into the canvas above to build a circuit.<br />
+              Double click on gates and wires or their nodes to delete them.<br />
+              Click and drag from any node to connect them — input nodes (left) or output nodes (right).
+            </p>
           </div>
         </div>
+
+        {/* Floating Puzzle Editor */}
+        {showPuzzleEditor && (
+          <PuzzleEditor onClose={() => setShowPuzzleEditor(false)} />
+        )}
       </div>
     </DndProvider>
   );
