@@ -59,7 +59,7 @@ export default function App() {
             <p>
               Drag gates into the canvas above to build a circuit.<br />
               Double click on gates and wires or their nodes to delete them.<br />
-              Click and drag from any node to connect them — input nodes (left) or output nodes (right).
+              Click and drag from any node to connect them.
             </p>
           </div>
         </div>
